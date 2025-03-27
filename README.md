@@ -151,3 +151,83 @@ Developing a comprehensive **Financial Management System** involves implementing
    - Create a password reset token and store it in the database.
    - Send a password reset link to the user's email.
    - Verify the token and allow the user to reset their password.
+
+## **2️⃣ Password Reset Feature**
+
+**Features:**
+- **Forgot Password:** Allow users to request a password reset link via email.
+- **Reset Password:** Allow users to reset their password using the link sent to their email.
+
+**Implementation Steps:**
+
+1. **Frontend:**
+   - Create a `ForgotPassword` component with a form to enter the email.
+   - Create a `PasswordReset` component with a form to enter the new password.
+   - Add routes for `ForgotPassword` and `PasswordReset` components in the router configuration.
+
+2. **Backend:**
+   - Add routes for password reset and forgot password in `authRoutes.js`.
+   - Implement `passwordReset` and `forgotPassword` controller functions in `authController.js`.
+   - Update the API documentation to include new endpoints for password reset and forgot password.
+
+3. **Documentation:**
+   - Update the `README.md` to specify the inclusion of password reset in the authentication flow.
+   - Add instructions for using the password reset feature.
+
+## **📂 Updated Project Structure**
+Here’s the **updated project structure** for your **Financial Management System** built using **Node.js, PostgreSQL, Prisma, JWT, RESTful APIs**, and **2FA authentication**.
+```
+pern-financial-management/
+│── 📁 src/
+│   │── 📁 config/            # Configuration files
+│   │   │── db.js             # PostgreSQL database connection (Prisma)
+│   │   │── redis.js          # Redis caching client setup
+│   │   └── dotenv.js         # Environment variables setup
+│   │── 📁 middleware/        # Authentication & authorization middleware
+│   │   │── authMiddleware.js # JWT & Role-Based Access (RBAC)
+│   │   └── rateLimit.js      # Rate limiting (security)
+│   │── 📁 routes/            # API routes (Modular)
+│   │   │── authRoutes.js     # Signup, login, JWT, 2FA, password reset
+│   │   │── userRoutes.js     # User profile & account actions
+│   │   │── transactionRoutes.js # Income, expenses, savings
+│   │   │── goalRoutes.js     # Financial saving goals
+│   │   │── adminRoutes.js    # Admin controls (User management)
+│   │   └── reportRoutes.js   # Financial reports (CSV, PDF exports)
+│   │── 📁 controllers/       # Business logic (separates concerns)
+│   │   │── authController.js # Auth logic (JWT, Argon2, Redis, 2FA, password reset)
+│   │   │── userController.js # User-related functions
+│   │   │── transactionController.js # Transactions handling
+│   │   │── goalController.js # Savings goal management
+│   │   │── adminController.js # Admin-related functions
+│   │   └── reportController.js # Financial reports generation
+│   │── 📁 utils/             # Utility functions
+│   │   │── jwt.js            # JWT helper functions
+│   │   │── email.js          # Email sending for OTP
+│   │   │── logger.js         # Logging system
+│   │   └── argon2.js         # Argon2 password hashing (renamed from bcrypt)
+│   │── 📁 services/          # Business logic services
+│   │   │── authService.js    # Authentication service
+│   │   │── userService.js    # User service (added)
+│   │   │── transactionService.js # Financial transactions service
+│   │   │── goalService.js    # Goal service (added)
+│   │   └── reportService.js  # Report generation service
+│   │── 📁 validators/        # Input validation (added)
+│   │   │── authValidator.js  # Validate auth inputs
+│   │   │── userValidator.js  # Validate user inputs
+│   │   └── transactionValidator.js # Validate transaction inputs
+│   │── app.js                # Express server setup
+│   
+│── 📁 prisma/                # Prisma configuration
+│   │── schema.prisma         # Database schema definition (all models)
+│   └── migrations/           # Database migrations
+│── 📁 tests/                 # API testing (Jest, Supertest)
+│   │── auth.test.js          # Test authentication flow
+│   │── transactions.test.js  # Test transactions API
+│   └── reports.test.js       # Test financial reports API
+│── 📁 docs/                  # API documentation (Swagger/Postman)
+│── .env                      # Environment variables
+│── .gitignore                # Ignore sensitive files
+│── package.json              # Project metadata & dependencies
+│── README.md                 # Project documentation
+└── server.js                 # Entry point
+```

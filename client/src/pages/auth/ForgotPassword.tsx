@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../../services/auth';
 
-const PasswordReset = () => {
+const ForgotPassword = () => {
   const [email, setEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const navigate = useNavigate();
@@ -12,12 +11,12 @@ const PasswordReset = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await auth.resetPassword(email, newPassword);
-      setSuccess('Password reset successfully.');
+      await auth.resetPassword(email);
+      setSuccess('Password reset email sent successfully.');
       setError('');
       navigate('/login');
     } catch (err) {
-      setError('Failed to reset password. Please try again.');
+      setError('Failed to send password reset email. Please try again.');
       setSuccess('');
     }
   };
@@ -25,7 +24,7 @@ const PasswordReset = () => {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded shadow-md">
-        <h2 className="text-2xl font-bold text-center">Reset Password</h2>
+        <h2 className="text-2xl font-bold text-center">Forgot Password</h2>
         {error && <p className="text-red-500">{error}</p>}
         {success && <p className="text-green-500">{success}</p>}
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -45,26 +44,11 @@ const PasswordReset = () => {
             />
           </div>
           <div>
-            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-              New Password
-            </label>
-            <input
-              id="newPassword"
-              name="newPassword"
-              type="password"
-              autoComplete="new-password"
-              required
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
             <button
               type="submit"
               className="w-full px-4 py-2 font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Reset Password
+              Send Reset Email
             </button>
           </div>
         </form>
@@ -73,4 +57,4 @@ const PasswordReset = () => {
   );
 };
 
-export default PasswordReset;
+export default ForgotPassword;
