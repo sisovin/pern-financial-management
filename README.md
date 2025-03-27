@@ -1,6 +1,20 @@
 # Pern Financial Management
 The project is a complete Financial Management System built using JWT authentication, and RESTful APIs. The project handles user authentication (Argon2, soft-delete Design, Redis caching client), transactions, saving goals, financial reports, and admin controls—all developed from scratch.
 
+## **Features**
+- User Authentication (JWT-based login & signup, Argon2, soft-delete Design, Redis caching client)
+- How two-factor authentication work from the attached image.
+- Transactions (Income, Expenses, Savings) Management
+- Saving Goals Module 🎯
+- Role-Based Access (User & Admin functionalities), permission 
+- Detailed Financial Reports & API Testing with Postman
+
+## **Tech Stack**
+- PostgreSQL
+- Prisma
+- JWT
+- REST API
+
 ## **📂 Project Structure**
 ```
 pern-financial-management/
@@ -56,22 +70,3 @@ pern-financial-management/
 │── package.json              # Project metadata & dependencies
 │── README.md                 # Project documentation
 ```
-
-## **🔥 Tech Stack**
-- **PostgreSQL**: Relational database management system
-- **Prisma**: ORM for database access
-- **JWT**: JSON Web Tokens for authentication
-- **REST API**: RESTful API design
-- **Node.js**: JavaScript runtime
-- **Express**: Web framework for Node.js
-- **Argon2**: Password hashing algorithm
-- **Redis**: In-memory data structure store for caching
-- **Swagger/Postman**: API documentation and testing tools
-
-## **✅ Features**
-- **User Authentication**: JWT-based login & signup, Argon2, soft-delete Design, Redis caching client
-- **Two-Factor Authentication**: How two-factor authentication works from the attached image
-- **Transactions Management**: Income, Expenses, Savings
-- **Saving Goals Module**: 🎯 Financial saving goals
-- **Role-Based Access**: User & Admin functionalities, permission
-- **Financial Reports**: Detailed financial reports & API Testing with Postman
