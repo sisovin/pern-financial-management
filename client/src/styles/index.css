@@ -1,0 +1,21 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom styles for light and dark modes */
+:root {
+  --color-bg-light: #ffffff;
+  --color-bg-dark: #1a202c;
+  --color-text-light: #1a202c;
+  --color-text-dark: #ffffff;
+}
+
+body {
+  background-color: var(--color-bg-light);
+  color: var(--color-text-light);
+}
+
+body.dark {
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-dark);
+}
