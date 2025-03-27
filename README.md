@@ -56,7 +56,7 @@ pern-financial-management/
 │   │   │── userValidator.js  # Validate user inputs
 │   │   └── transactionValidator.js # Validate transaction inputs
 │   │── app.js                # Express server setup
-│   └── server.js             # Entry point
+│   
 │── 📁 prisma/                # Prisma configuration
 │   │── schema.prisma         # Database schema definition (all models)
 │   └── migrations/           # Database migrations
@@ -69,52 +69,5 @@ pern-financial-management/
 │── .gitignore                # Ignore sensitive files
 │── package.json              # Project metadata & dependencies
 │── README.md                 # Project documentation
+└── server.js                 # Entry point
 ```
-
-## **Setting up PostgreSQL Database Connection using Prisma**
-1. Install Prisma and the PostgreSQL client:
-   ```sh
-   npm install @prisma/client
-   npm install prisma
-   ```
-
-2. Initialize Prisma in your project:
-   ```sh
-   npx prisma init
-   ```
-
-3. Configure the `DATABASE_URL` in your `.env` file:
-   ```
-   DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE"
-   ```
-
-4. Create the `PrismaClient` instance in `src/config/db.js`:
-   ```js
-   const { PrismaClient } = require('@prisma/client');
-   const prisma = new PrismaClient();
-   module.exports = prisma;
-   ```
-
-5. Use the `PrismaClient` instance in your application (`src/app.js`):
-   ```js
-   const express = require('express');
-   const prisma = require('./config/db');
-
-   const app = express();
-
-   app.use((req, res, next) => {
-     req.prisma = prisma;
-     next();
-   });
-
-   // Other middleware and routes
-
-   module.exports = app;
-   ```
-
-6. Run the Prisma migrations to set up your database schema:
-   ```sh
-   npx prisma migrate dev --name init
-   ```
-
-7. You can now use Prisma in your application to interact with the PostgreSQL database.
