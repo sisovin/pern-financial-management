@@ -29,14 +29,14 @@ pern-financial-management/
 │   │   │── authMiddleware.js # JWT & Role-Based Access (RBAC)
 │   │   └── rateLimit.js      # Rate limiting (security)
 │   │── 📁 routes/            # API routes (Modular)
-│   │   │── authRoutes.js     # Signup, login, JWT, 2FA
+│   │   │── authRoutes.js     # Signup, login, JWT, 2FA, password reset
 │   │   │── userRoutes.js     # User profile & account actions
 │   │   │── transactionRoutes.js # Income, expenses, savings
 │   │   │── goalRoutes.js     # Financial saving goals
 │   │   │── adminRoutes.js    # Admin controls (User management)
 │   │   └── reportRoutes.js   # Financial reports (CSV, PDF exports)
 │   │── 📁 controllers/       # Business logic (separates concerns)
-│   │   │── authController.js # Auth logic (JWT, Argon2, Redis, 2FA)
+│   │   │── authController.js # Auth logic (JWT, Argon2, Redis, 2FA, password reset)
 │   │   │── userController.js # User-related functions
 │   │   │── transactionController.js # Transactions handling
 │   │   │── goalController.js # Savings goal management
@@ -121,6 +121,7 @@ Developing a comprehensive **Financial Management System** involves implementing
 - **Soft-Delete Design:** Implement soft-delete functionality for user accounts.
 - **Session Management:** Use **Redis** for caching and session management.
 - **Two-Factor Authentication (2FA):** Implement 2FA using OTPs sent via email or SMS.
+- **Password Reset:** Implement password reset functionality.
 
 **Implementation Steps:**
 
@@ -145,3 +146,8 @@ Developing a comprehensive **Financial Management System** involves implementing
    - Generate a secret for 2FA and store it in the `twoFactorSecret` field.
    - Use a library like `speakeasy` to generate and verify OTPs.
    - During login, if 2FA is enabled, prompt the user for the OTP.
+
+6. **Implement Password Reset:**
+   - Create a password reset token and store it in the database.
+   - Send a password reset link to the user's email.
+   - Verify the token and allow the user to reset their password.

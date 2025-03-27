@@ -1,4 +1,3 @@
-// Auth logic (JWT, Argon2, Redis, 2FA)
 import { registerUser, loginUser, logoutUser } from '../services/authService.js';
 import { logger } from "../utils/logger.js";
 
@@ -74,7 +73,6 @@ export async function register(req, res) {
       data: newUser
     });
   } catch (error) {
-    // Replace console.error with logger
     logger.error('Registration error', {
       email: req.body?.email,
       username: req.body?.username,
@@ -121,12 +119,11 @@ export async function login(req, res) {
     
     const loginResult = await loginUser(email, password);
     
-    // Set refresh token in HTTP-only cookie
     res.cookie('refreshToken', loginResult.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000
     });
     
     logger.info('User logged in successfully', {
@@ -144,7 +141,6 @@ export async function login(req, res) {
       }
     });
   } catch (error) {
-    // Replace console.error with logger
     logger.error('Login error', {
       email: req.body?.email,
       error: error.message,
@@ -177,7 +173,6 @@ export async function logout(req, res) {
     
     await logoutUser(userId);
     
-    // Clear refresh token cookie
     res.clearCookie('refreshToken');
     
     logger.info('User logged out successfully', { userId, ip: req.ip });
@@ -187,7 +182,6 @@ export async function logout(req, res) {
       message: 'Logout successful'
     });
   } catch (error) {
-    // Replace console.error with logger
     logger.error('Logout error', {
       userId: req.user?.userId,
       error: error.message,
@@ -198,6 +192,53 @@ export async function logout(req, res) {
     res.status(500).json({
       error: true,
       message: 'Logout failed'
+    });
+  }
+}
+
+/**
+ * Reset Password controller
+ */
+export async function resetPassword(req, res) {
+  try {
+    const { email } = req.body;
+    
+    logger.debug('Password reset attempt', { email, ip: req.ip });
+    
+    if (!email) {
+      logger.info('Password reset validation failed: missing email', {
+        hasEmail: !!email,
+        ip: req.ip
+      });
+      
+      return res.status(400).json({
+        error: true,
+        message: "Email is required",
+      });
+    }
+    
+    await resetPassword(email);
+    
+    logger.info('Password reset link sent successfully', {
+      email,
+      ip: req.ip
+    });
+    
+    res.status(200).json({
+      error: false,
+      message: 'Password reset link sent successfully'
+    });
+  } catch (error) {
+    logger.error('Password reset error', {
+      email: req.body?.email,
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip
+    });
+    
+    res.status(500).json({
+      error: true,
+      message: 'Password reset failed'
     });
   }
 }

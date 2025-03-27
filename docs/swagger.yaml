@@ -50,6 +50,20 @@ paths:
           description: 2FA enabled successfully
         '500':
           description: Internal server error
+  /auth/reset-password:
+    post:
+      summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset link sent successfully
+        '500':
+          description: Failed to send password reset link
   /users/profile:
     get:
       summary: Get user profile
@@ -272,6 +286,11 @@ components:
       type: object
       properties:
         token:
+          type: string
+    ResetPasswordRequest:
+      type: object
+      properties:
+        email:
           type: string
     UpdateUserProfileRequest:
       type: object
