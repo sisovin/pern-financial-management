@@ -55,8 +55,8 @@ pern-financial-management/
 │   │   │── authValidator.js  # Validate auth inputs
 │   │   │── userValidator.js  # Validate user inputs
 │   │   └── transactionValidator.js # Validate transaction inputs
-│   │── app.js                # Express server setup
-│   └── server.js             # Entry point
+│   └── app.js                # Express server setup
+│   
 │── 📁 prisma/                # Prisma configuration
 │   │── schema.prisma         # Database schema definition (all models)
 │   └── migrations/           # Database migrations
@@ -69,6 +69,7 @@ pern-financial-management/
 │── .gitignore                # Ignore sensitive files
 │── package.json              # Project metadata & dependencies
 │── README.md                 # Project documentation
+└── server.js                 # Entry point
 ```
 
 ## **Setting up PostgreSQL Database Connection using Prisma**
