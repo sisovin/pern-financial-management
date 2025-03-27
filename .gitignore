@@ -1,0 +1,14 @@
+node_modules
+# Keep environment variables out of version control
+.env
+
+# Documentation files
+docs/AuthFunctionality.md
+docs/CodeCitations.md
+docs/DbConnnection.md
+docs/generateEnv.md
+docs/Learn_Logger.md
+docs/Roadmap.md
+docs/UsersFunctionality.md
+
+docs/*.md

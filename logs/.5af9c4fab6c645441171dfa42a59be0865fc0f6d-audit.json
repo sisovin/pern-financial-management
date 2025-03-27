@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "D:\\PernProjects\\pern-financial-management\\logs\\.5af9c4fab6c645441171dfa42a59be0865fc0f6d-audit.json",
+    "files": [
+        {
+            "date": 1743048583272,
+            "name": "D:\\PernProjects\\pern-financial-management\\logs\\combined-2025-03-27.log",
+            "hash": "1df8bfbcba3b558e23e1fcc7828364b50bb900b56501e5d6a27044dce05d0e04"
+        }
+    ],
+    "hashType": "sha256"
+}

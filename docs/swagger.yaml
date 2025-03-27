@@ -1,0 +1,324 @@
+openapi: 3.0.0
+info:
+  title: Financial Management System API
+  description: API documentation for the Financial Management System
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000/api
+paths:
+  /auth/signup:
+    post:
+      summary: User signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        '201':
+          description: User created successfully
+        '500':
+          description: Internal server error
+  /auth/login:
+    post:
+      summary: User login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Invalid credentials
+        '500':
+          description: Internal server error
+  /auth/2fa:
+    post:
+      summary: Enable 2FA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TwoFactorAuthRequest'
+      responses:
+        '200':
+          description: 2FA enabled successfully
+        '500':
+          description: Internal server error
+  /users/profile:
+    get:
+      summary: Get user profile
+      responses:
+        '200':
+          description: User profile fetched successfully
+        '500':
+          description: Failed to fetch user profile
+    put:
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserProfileRequest'
+      responses:
+        '200':
+          description: User profile updated successfully
+        '500':
+          description: Failed to update user profile
+    delete:
+      summary: Delete user profile
+      responses:
+        '200':
+          description: User profile deleted successfully
+        '500':
+          description: Failed to delete user profile
+  /transactions/income:
+    post:
+      summary: Create income transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IncomeRequest'
+      responses:
+        '200':
+          description: Income transaction created successfully
+        '500':
+          description: Failed to create income transaction
+    get:
+      summary: Get income transactions
+      responses:
+        '200':
+          description: Income transactions fetched successfully
+        '500':
+          description: Failed to fetch income transactions
+  /transactions/expenses:
+    post:
+      summary: Create expense transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseRequest'
+      responses:
+        '200':
+          description: Expense transaction created successfully
+        '500':
+          description: Failed to create expense transaction
+    get:
+      summary: Get expense transactions
+      responses:
+        '200':
+          description: Expense transactions fetched successfully
+        '500':
+          description: Failed to fetch expense transactions
+  /transactions/savings:
+    post:
+      summary: Create saving transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SavingRequest'
+      responses:
+        '200':
+          description: Saving transaction created successfully
+        '500':
+          description: Failed to create saving transaction
+    get:
+      summary: Get saving transactions
+      responses:
+        '200':
+          description: Saving transactions fetched successfully
+        '500':
+          description: Failed to fetch saving transactions
+  /goals:
+    post:
+      summary: Create saving goal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoalRequest'
+      responses:
+        '201':
+          description: Saving goal created successfully
+        '500':
+          description: Failed to create saving goal
+    get:
+      summary: Get saving goals
+      responses:
+        '200':
+          description: Saving goals fetched successfully
+        '500':
+          description: Failed to fetch saving goals
+    put:
+      summary: Update saving goal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGoalRequest'
+      responses:
+        '200':
+          description: Saving goal updated successfully
+        '500':
+          description: Failed to update saving goal
+    delete:
+      summary: Delete saving goal
+      responses:
+        '200':
+          description: Saving goal deleted successfully
+        '500':
+          description: Failed to delete saving goal
+  /admin/users:
+    get:
+      summary: Get all users
+      responses:
+        '200':
+          description: Users fetched successfully
+        '500':
+          description: Failed to fetch users
+  /admin/users/{id}:
+    get:
+      summary: Get user by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User fetched successfully
+        '500':
+          description: Failed to fetch user
+    put:
+      summary: Update user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: User updated successfully
+        '500':
+          description: Failed to update user
+    delete:
+      summary: Delete user
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User deleted successfully
+        '500':
+          description: Failed to delete user
+  /reports/csv:
+    get:
+      summary: Generate CSV report
+      responses:
+        '200':
+          description: CSV report generated successfully
+        '500':
+          description: Failed to generate CSV report
+  /reports/pdf:
+    get:
+      summary: Generate PDF report
+      responses:
+        '200':
+          description: PDF report generated successfully
+        '500':
+          description: Failed to generate PDF report
+components:
+  schemas:
+    SignupRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    TwoFactorAuthRequest:
+      type: object
+      properties:
+        token:
+          type: string
+    UpdateUserProfileRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+    IncomeRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+    ExpenseRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+    SavingRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+    GoalRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        target:
+          type: number
+    UpdateGoalRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        target:
+          type: number
+        progress:
+          type: number
+    UpdateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string

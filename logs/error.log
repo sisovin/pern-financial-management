@@ -1,0 +1,4 @@
+2025-03-26 20:01:17:117 error: Login error
+Error: Invalid password
+    at loginUser (file:///D:/PernProjects/pern-financial-management/src/services/authService.js:142:11)
+    at async login (file:///D:/PernProjects/pern-financial-management/src/controllers/authController.js:122:25)
