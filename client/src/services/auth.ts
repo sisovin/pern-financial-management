@@ -18,6 +18,10 @@ const auth = {
   getProfile: async () => {
     const response = await axios.get(`${API_URL}/auth/profile`);
     return response.data;
+  },
+  resetPassword: async (email) => {
+    const response = await axios.post(`${API_URL}/auth/reset-password`, { email });
+    return response.data;
   }
 };
 
