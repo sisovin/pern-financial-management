@@ -1,4 +1,6 @@
 import express from "express";
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs'; // Add this import
 import cors from "cors";
 import "./config/dotenv.js"; // Load env variables first
 import authRoutes from "./routes/authRoutes.js";
@@ -8,6 +10,13 @@ import httpLogger, { errorHandler, logger } from "./utils/logger.js";
 import rotateLog from "./utils/rotateLog.js"; 
 import { asyncLogger } from "./utils/asyncLogger.js";
 import { limiter } from "./middleware/rateLimit.js";
+import path from 'path';
+import { fileURLToPath } from 'url'; // Need this for ESM
+
+
+// For ES modules to use __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -26,6 +35,21 @@ app.use(
 // Log application startup
 logger.info("Initializing Express application", {
   environment: process.env.NODE_ENV || "development"
+});
+
+// Load Swagger document
+const swaggerDocument = YAML.load(path.join(__dirname, '../docs/swagger.yaml'));
+
+// Serve Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+app.use("/", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+console.log("Swagger document loaded:", Object.keys(swaggerDocument));
+
+// Add this to your app.js before the 404 handler
+app.get('/swagger-test', (req, res) => {
+  logger.info("Swagger test route accessed");
+  res.send("Swagger UI should be available at /api-docs");
 });
 
 // Routes
