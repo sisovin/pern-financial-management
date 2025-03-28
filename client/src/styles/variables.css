@@ -1,0 +1,60 @@
+:root {
+  /* Make sure to include this variable which is used in components.css */
+  --loader-color: var(--primary-color); 
+  
+  /* Original colors with accessibility improvements */
+  --primary-color: #1a6fb0; /* Darker blue for better contrast */
+  --hover-color: #13507f; /* Even darker for hover states */
+  --secondary-color: #208e4e; /* Darker green for better contrast */
+  --background-color: #f8f9fa;
+  --surface-color: #ffffff;
+  --card-background: #ffffff;
+  --text-color: #333333;
+  --text-muted: #555555; /* Darker muted text for better contrast */
+  --border-color: #e1e4e8;
+  --success-color: #208e4e; /* Darker success color */
+  --error-color: #c0392b; /* Darker error color */
+  --warning-color: #d35400; /* Darker warning color */
+  
+  /* New high-contrast text colors for use on colored backgrounds */
+  --text-on-primary: #ffffff;
+  --text-on-secondary: #ffffff;
+  --text-on-dark: #ffffff;
+  --text-on-error: #ffffff;
+  
+  /* Spacing */
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  
+  /* Font sizes */
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  
+  /* Font weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 600;
+  
+  /* Shadows */
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Dark mode variables */
+.dark {
+  --primary-color: #4fa3e0; /* Lighter blue for dark mode */
+  --hover-color: #6cb0e6; /* Even lighter for hover states in dark mode */
+  --secondary-color: #5bcd89; /* Lighter green for dark mode */
+  --background-color: #121212;
+  --surface-color: #1e1e1e;
+  --card-background: #1e1e1e;
+  --text-color: #e0e0e0;
+  --text-muted: #b0b0b0; /* Lighter muted text for dark mode */
+  --border-color: #333333;
+  --success-color: #5bcd89; /* Lighter success color for dark mode */
+  --error-color: #e66e5b; /* Lighter error color for dark mode */
+  --warning-color: #f39c12;
+}

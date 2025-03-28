@@ -20,6 +20,8 @@ model User {
   adminData       AdminData?
   transactions    Transaction[]
   savingGoals     SavingGoal[]
+  passwordReset   PasswordReset?
+  emailVerification EmailVerification?
   twoFactorEnabled Boolean     @default(false)
   twoFactorSecret  String?
   isDeleted       Boolean     @default(false)
@@ -100,6 +102,29 @@ model Permission {
   updatedAt   DateTime  @updatedAt
   
   @@map("permissions")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  token     String
+  expires   DateTime
+  createdAt DateTime @default(now())  
+  updatedAt DateTime    @updatedAt 
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("password_resets")
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  token     String
+  expires   DateTime
+  createdAt DateTime @default(now())
+  updatedAt   DateTime    @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  @@map("email_verifications")
 }
 
 model Transaction {

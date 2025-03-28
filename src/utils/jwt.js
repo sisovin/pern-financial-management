@@ -96,6 +96,24 @@ export function verifyAccessToken(token) {
 }
 
 /**
+ * Verify JWT token
+ * @param {string} token - JWT token to verify
+ * @param {string} secret - Secret key to verify with
+ * @returns {Object} Decoded token payload
+ */
+export function verifyToken(token, secret) {
+  try {
+    return jwt.verify(token, secret);
+  } catch (error) {
+    logger.error('JWT verification error', { 
+      error: error.message,
+      stack: error.stack 
+    });
+    throw error;
+  }
+}
+
+/**
  * Verify refresh token
  * @param {string} token - JWT refresh token to verify
  * @returns {Object|null} Decoded token payload or null if invalid

@@ -6,13 +6,15 @@ import userRoutes from "./routes/userRoutes.js";
 import testRoutes from "./routes/testRoutes.js";
 import httpLogger, { errorHandler, logger } from "./utils/logger.js"; 
 import rotateLog from "./utils/rotateLog.js"; 
-import { asyncLogger } from "./utils/asyncLogger.js"; 
+import { asyncLogger } from "./utils/asyncLogger.js";
+import { limiter } from "./middleware/rateLimit.js";
 
 const app = express();
 
 // Middleware
 app.use(httpLogger); // This should be first to log all requests
 app.use(express.json());
+app.use(limiter); // Apply rate limiter globally (or per route)
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({

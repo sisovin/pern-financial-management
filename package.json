@@ -21,10 +21,13 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "ioredis": "^5.6.0",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.10.0",
     "pg": "^8.14.1",
     "prisma": "^6.5.0",
+    "rate-limit-redis": "^4.2.0",
     "redis": "^4.7.0",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^4.7.1"
