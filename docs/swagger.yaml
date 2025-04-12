@@ -4,316 +4,2799 @@ info:
   description: API documentation for the Financial Management System
   version: 1.0.0
 servers:
-  - url: http://localhost:5000/api-docs
-    description: Local server
+  - url: http://localhost:5000/api
+    description: Local server with API prefix
+# Add the securitySchemes here, at the same level as schemas
+securitySchemes:
+  bearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
+# Add global security requirement here
+security:
+  - bearerAuth: []
+# Authentication and User Management
 paths:
-  /auth/signup:
+  /auth/register:
     post:
-      summary: User signup
+      tags:
+        - Authentication
+      summary: User registration
+      description: Create a new user account
+      security: [] # Override to make this endpoint public
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SignupRequest'
+              $ref: "#/components/schemas/RegistrationRequest"
       responses:
-        '201':
-          description: User created successfully
-        '500':
-          description: Internal server error
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: User registered successfully
+                  data:
+                    $ref: "#/components/schemas/User"
+        "400":
+          description: Validation failed
+        "409":
+          description: User with this email or username already exists
+        "500":
+          description: Registration failed
+
   /auth/login:
     post:
+      tags:
+        - Authentication
       summary: User login
+      description: Authenticate a user and return tokens
+      security: [] # Override to make this endpoint public
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: "#/components/schemas/LoginRequest"
       responses:
-        '200':
+        "200":
           description: Login successful
-        '401':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Login successful
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: "#/components/schemas/User"
+                      accessToken:
+                        type: string
+        "400":
+          description: Validation failed
+        "401":
           description: Invalid credentials
-        '500':
-          description: Internal server error
-  /auth/2fa:
+        "500":
+          description: Login failed
+
+  /auth/refresh-token:
     post:
-      summary: Enable 2FA
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Get a new access token using refresh token. In production, the refresh token is sent via HTTP-only cookie, but for testing, it can be sent in the request body.
+      security: [] # No bearer token needed as it uses refresh token
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TwoFactorAuthRequest'
+              type: object
+              properties:
+                refreshToken:
+                  type: string
+                  description: The refresh token (only needed when not using cookies)
+                  example: "Previously Generated RefreshToken"
+              required:
+                - refreshToken
       responses:
-        '200':
-          description: 2FA enabled successfully
-        '500':
-          description: Internal server error
-  /users/profile:
+        "200":
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Token refreshed successfully
+                  data:
+                    type: object
+                    properties:
+                      accessToken:
+                        type: string
+        "401":
+          description: Invalid or expired refresh token
+        "500":
+          description: Failed to refresh token
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: User logout
+      description: Log out the user and invalidate tokens
+      security:
+        - bearerAuth: [] # Requires authentication
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          description: "JWT access token with the Bearer prefix"
+      responses:
+        "200":
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Logout successful
+        "401":
+          description: Authentication required
+        "500":
+          description: Logout failed
+
+  /auth/request-password-reset:
+    post:
+      tags:
+        - Authentication
+      summary: Request password reset
+      description: Request a password reset link to be sent to email
+      security: [] # Override to make this endpoint public
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+              required:
+                - email
+      responses:
+        "200":
+          description: Password reset request processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: If your email exists in our system, you will receive a password reset link.
+        "400":
+          description: Validation failed
+        "500":
+          description: Failed to process password reset request
+
+  /auth/reset-password:
+    post:
+      tags:
+        - Authentication
+      summary: Reset password
+      description: Reset password using token
+      security: [] # Override to make this endpoint public
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                  format: password
+              required:
+                - userId
+                - token
+                - newPassword
+      responses:
+        "200":
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Password has been reset successfully
+        "400":
+          description: Invalid or expired token
+        "500":
+          description: Failed to reset password
+
+  /auth/verify-email:
+    post:
+      tags:
+        - Authentication
+      summary: Verify email
+      description: Verify user email with token
+      security: [] # Override to make this endpoint public
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                token:
+                  type: string
+              required:
+                - userId
+                - token
+      responses:
+        "200":
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Email has been verified successfully
+        "400":
+          description: Invalid or expired token
+        "500":
+          description: Failed to verify email
+
+  /auth/2fa/enable:
+    post:
+      tags:
+        - Authentication
+      summary: Enable two-factor authentication
+      description: Generate and enable 2FA for the user account
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 2FA setup initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "2FA setup initiated"
+                  data:
+                    type: object
+                    properties:
+                      qrCodeUrl:
+                        type: string
+                        description: URL for the QR code to scan
+                      secret:
+                        type: string
+                        description: Secret key for manual entry
+        "401":
+          description: Unauthorized - user not authenticated
+        "500":
+          description: Failed to enable 2FA
+
+  /auth/2fa/verify:
+    post:
+      tags:
+        - Authentication
+      summary: Verify two-factor authentication code
+      description: Verify the 2FA code provided by the user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: The 2FA code from authenticator app
+              required:
+                - code
+      responses:
+        "200":
+          description: 2FA code verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "2FA enabled successfully"
+        "400":
+          description: Invalid 2FA code
+        "401":
+          description: Unauthorized - user not authenticated
+        "500":
+          description: Failed to verify 2FA code
+
+  /auth/2fa/disable:
+    post:
+      tags:
+        - Authentication
+      summary: Disable two-factor authentication
+      description: Disable 2FA for the user account
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  description: The current 2FA code to confirm identity
+              required:
+                - code
+      responses:
+        "200":
+          description: 2FA disabled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "2FA has been disabled"
+        "400":
+          description: Invalid 2FA code
+        "401":
+          description: Unauthorized - user not authenticated
+        "500":
+          description: Failed to disable 2FA
+
+  /auth/user-profile:
     get:
+      tags:
+        - Authentication
       summary: Get user profile
+      description: Get the profile of the currently authenticated user
       responses:
-        '200':
+        "200":
           description: User profile fetched successfully
-        '500':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: User profile fetched successfully
+                  data:
+                    $ref: "#/components/schemas/User"
+        "401":
+          description: Authentication required
+        "404":
+          description: User not found
+        "500":
           description: Failed to fetch user profile
-    put:
+
+  /auth/update-profile:
+    post:
+      tags:
+        - Authentication
       summary: Update user profile
+      description: Update the profile of the currently authenticated user
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateUserProfileRequest'
+              $ref: "#/components/schemas/UpdateProfileRequest"
       responses:
-        '200':
-          description: User profile updated successfully
-        '500':
-          description: Failed to update user profile
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Profile updated successfully
+                  data:
+                    $ref: "#/components/schemas/User"
+        "400":
+          description: Validation failed
+        "401":
+          description: Authentication required
+        "404":
+          description: User not found
+        "409":
+          description: Email or username already in use
+        "500":
+          description: Failed to update profile
+
+  # Add these paths to your existing swagger.yaml file
+  /admin/dashboard:
+    get:
+      tags:
+        - Admin
+      summary: Get admin dashboard statistics
+      description: Retrieve statistics for the admin dashboard
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dashboard statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  data:
+                    type: object
+                    properties:
+                      users:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          active:
+                            type: integer
+                          newThisMonth:
+                            type: integer
+                      transactions:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          thisMonth:
+                            type: integer
+                      categories:
+                        type: integer
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Requires admin role
+        "500":
+          description: Failed to retrieve dashboard statistics
+  # Add or update these admin routes to match your implementation
+  /admin/users:
+    get:
+      tags:
+        - Admin
+      summary: Manage users
+      description: Get all users with pagination
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Items per page
+        - in: query
+          name: includeDeleted
+          schema:
+            type: boolean
+            default: false
+          description: Whether to include soft-deleted users
+      responses:
+        "200":
+          description: Users list retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  data:
+                    type: object
+                    properties:
+                      users:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/User"
+                      pagination:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          page:
+                            type: integer
+                          limit:
+                            type: integer
+                          pages:
+                            type: integer
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Requires admin role
+        "500":
+          description: Failed to retrieve users list
+
+    post:
+      tags:
+        - Admin
+      summary: Create new user
+      description: Create a new user as an admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: User created successfully
+                  data:
+                    $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Requires admin permission
+        "409":
+          description: User with this email or username already exists
+        "500":
+          description: Failed to create user
+  /admin/users/{userId}:
     delete:
-      summary: Delete user profile
+      tags:
+        - Admin
+      summary: Hard delete user
+      description: Permanently delete a user and associated data
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: User ID
       responses:
-        '200':
-          description: User profile deleted successfully
-        '500':
-          description: Failed to delete user profile
+        "200":
+          description: User hard deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: User has been permanently deleted
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Requires admin permission
+        "404":
+          description: User not found
+        "500":
+          description: Failed to hard delete user
+  /admin/users/{userId}/status:
+    patch:
+      tags:
+        - Admin
+      summary: Set user active status
+      description: Activate or deactivate a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isActive:
+                  type: boolean
+                  description: Whether the user should be active
+              required:
+                - isActive
+      responses:
+        "200":
+          description: User active status changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: User has been activated
+                  data:
+                    $ref: "#/components/schemas/User"
+        "400":
+          description: isActive must be a boolean value
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Requires admin permission
+        "404":
+          description: User not found
+        "500":
+          description: Failed to change user active status
+  /admin/users/{userId}/soft:
+    delete:
+      tags:
+        - Admin
+      summary: Soft delete user
+      description: Mark a user as deleted without removing data
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: User ID
+      responses:
+        "200":
+          description: User soft deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: User has been soft deleted
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Requires admin permission
+        "404":
+          description: User not found
+        "500":
+          description: Failed to soft delete user
+  /admin/roles:
+    get:
+      tags:
+        - Admin
+      summary: Get roles and permissions
+      description: Get all roles with their permissions
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Roles and permissions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  data:
+                    type: object
+                    properties:
+                      roles:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Role"
+                      permissions:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Permission"
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Requires admin role
+        "500":
+          description: Failed to retrieve roles and permissions
+
+    post:
+      tags:
+        - Admin
+      summary: Create role
+      description: Create a new role
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoleRequest"
+      responses:
+        "201":
+          description: Role created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Role created successfully
+                  data:
+                    $ref: "#/components/schemas/Role"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Requires admin permission
+        "409":
+          description: Role with this name already exists
+        "500":
+          description: Failed to create role
+  /admin/permissions:
+    post:
+      tags:
+        - Admin
+      summary: Create permission
+      description: Create a new permission
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePermissionRequest"
+      responses:
+        "201":
+          description: Permission created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Permission created successfully
+                  data:
+                    $ref: "#/components/schemas/Permission"
+        "400":
+          description: Invalid input
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Requires admin permission
+        "409":
+          description: Permission with this name already exists
+        "500":
+          description: Failed to create permission
+  /admin/roles/{roleId}/permissions:
+    put:
+      tags:
+        - Admin
+      summary: Update role permissions
+      description: Update the permissions assigned to a role
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: roleId
+          required: true
+          schema:
+            type: string
+          description: Role ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                  description: Array of permission IDs
+              required:
+                - permissions
+      responses:
+        "200":
+          description: Role permissions updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Role permissions updated successfully
+                  data:
+                    $ref: "#/components/schemas/Role"
+        "400":
+          description: Permissions must be provided as an array
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Requires admin permission
+        "404":
+          description: Role not found
+        "500":
+          description: Failed to update role permissions
+  /admin/audit-logs:
+    get:
+      tags:
+        - Admin
+      summary: Get audit logs
+      description: Get system audit logs with filtering
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: Items per page
+        - in: query
+          name: userId
+          schema:
+            type: string
+          description: Filter by user ID
+        - in: query
+          name: action
+          schema:
+            type: string
+          description: Filter by action type
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+          description: Filter by start date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+          description: Filter by end date
+      responses:
+        "200":
+          description: Audit logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  data:
+                    type: object
+                    properties:
+                      logs:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/AuditLog"
+                      pagination:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          page:
+                            type: integer
+                          limit:
+                            type: integer
+                          pages:
+                            type: integer
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden - Requires admin permission
+        "500":
+          description: Failed to retrieve audit logs
+
+  # User Profile Management
+  /users:
+    get:
+      tags:
+        - User Management
+      summary: Get all users with pagination
+      description: Admin endpoint to retrieve all users with pagination
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          description: Unauthorized - user not authenticated
+        "403":
+          description: Forbidden - user doesn't have admin permissions
+        "500":
+          description: Server error
+
+  /users/{id}:
+    get:
+      tags:
+        - User Management
+      summary: Get user by ID
+      description: Get a specific user by ID (admin or self)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/UserDetails"
+        "401":
+          description: Unauthorized - user not authenticated
+        "403":
+          description: Forbidden - user doesn't have permission
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+    put:
+      tags:
+        - User Management
+      summary: Update user
+      description: Update a specific user (admin or self)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/UserDetails"
+        "400":
+          description: Invalid input data
+        "401":
+          description: Unauthorized - user not authenticated
+        "403":
+          description: Forbidden - user doesn't have permission
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+    delete:
+      tags:
+        - User Management
+      summary: Soft delete user
+      description: Soft delete a user (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User soft deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "User has been soft deleted"
+        "401":
+          description: Unauthorized - user not authenticated
+        "403":
+          description: Forbidden - user doesn't have admin permission
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+  /users/{id}/hard:
+    delete:
+      tags:
+        - User Management
+      summary: Hard delete user
+      description: Permanently delete a user (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: User hard deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "User has been permanently deleted"
+        "401":
+          description: Unauthorized - user not authenticated
+        "403":
+          description: Forbidden - user doesn't have admin permission
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+
+  /users/{id}/status:
+    patch:
+      tags:
+        - User Management
+      summary: Set user active status
+      description: Activate or deactivate a user (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isActive:
+                  type: boolean
+                  description: Whether the user should be active
+              required:
+                - isActive
+      responses:
+        "200":
+          description: User status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "User status updated successfully"
+                  data:
+                    $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid input data
+        "401":
+          description: Unauthorized - user not authenticated
+        "403":
+          description: Forbidden - user doesn't have admin permission
+        "404":
+          description: User not found
+        "500":
+          description: Server error
+  # Categories Routes - Should be properly under paths:
+  /categories:
+    get:
+      tags:
+        - Categories Management
+      summary: Get all categories
+      description: Retrieve a list of all categories with pagination
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 10
+        - name: type
+          in: query
+          description: Filter by transaction type
+          schema:
+            type: string
+            enum: [INCOME, EXPENSE, TRANSFER, INVESTMENT]
+        - name: search
+          in: query
+          description: Search term for filtering categories
+          schema:
+            type: string
+        - name: includeDeleted
+          in: query
+          description: Whether to include soft-deleted categories
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Categories retrieved successfully
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Category"
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      pages:
+                        type: integer
+        "401":
+          description: Unauthorized - user not authenticated
+        "500":
+          description: Server error
+
+    post:
+      tags:
+        - Categories Management
+      summary: Create a new category
+      description: Create a new transaction category
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - type
+              properties:
+                name:
+                  type: string
+                  description: Category name
+                type:
+                  type: string
+                  enum: [INCOME, EXPENSE, TRANSFER, INVESTMENT]
+                  description: Transaction type this category belongs to
+                description:
+                  type: string
+                  description: Category description
+      responses:
+        "201":
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Category created successfully
+                  data:
+                    $ref: "#/components/schemas/Category"
+        "400":
+          description: Invalid input data
+        "401":
+          description: Unauthorized - user not authenticated
+        "409":
+          description: Category with this name and type already exists
+        "500":
+          description: Server error
+
+  /categories/{id}:
+    get:
+      tags:
+        - Categories Management
+      summary: Get category by ID
+      description: Retrieve a specific category by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Category ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Category retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Category retrieved successfully
+                  data:
+                    $ref: "#/components/schemas/Category"
+        "401":
+          description: Unauthorized - user not authenticated
+        "404":
+          description: Category not found
+        "500":
+          description: Server error
+
+    put:
+      tags:
+        - Categories Management
+      summary: Update category
+      description: Update a specific category by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Category ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Category name
+                type:
+                  type: string
+                  enum: [INCOME, EXPENSE, TRANSFER, INVESTMENT]
+                  description: Transaction type this category belongs to
+                description:
+                  type: string
+                  description: Category description
+      responses:
+        "200":
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Category updated successfully
+                  data:
+                    $ref: "#/components/schemas/Category"
+        "400":
+          description: Invalid input data
+        "401":
+          description: Unauthorized - user not authenticated
+        "404":
+          description: Category not found
+        "409":
+          description: Category with this name and type already exists
+        "500":
+          description: Server error
+
+    delete:
+      tags:
+        - Categories Management
+      summary: Delete category
+      description: Soft delete a category by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Category ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Category deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Category deleted successfully
+        "401":
+          description: Unauthorized - user not authenticated
+        "404":
+          description: Category not found
+        "500":
+          description: Server error
+
+  /categories/{id}/hard:
+    delete:
+      tags:
+        - Categories Management
+      summary: Hard delete category
+      description: Permanently delete a category (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Category ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Category permanently deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Category permanently deleted
+        "400":
+          description: Cannot delete category that is used in transactions
+        "401":
+          description: Unauthorized - user not authenticated
+        "403":
+          description: Forbidden - requires admin role
+        "404":
+          description: Category not found
+        "500":
+          description: Server error
+
+  /categories/{id}/restore:
+    post:
+      tags:
+        - Categories Management
+      summary: Restore category
+      description: Restore a soft-deleted category (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Category ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Category restored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Category restored successfully
+                  data:
+                    $ref: "#/components/schemas/Category"
+        "400":
+          description: Category is not deleted
+        "401":
+          description: Unauthorized - user not authenticated
+        "403":
+          description: Forbidden - requires admin role
+        "404":
+          description: Category not found
+        "409":
+          description: Cannot restore category due to name/type conflict
+        "500":
+          description: Server error
+  # Transaction Routes
+  /transactions:
+    post:
+      tags:
+        - Transactions
+      summary: Create a new transaction
+      description: Creates a new financial transaction for the authenticated user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - amount
+                - description
+              properties:
+                type:
+                  type: string
+                  enum: [INCOME, EXPENSE, TRANSFER, INVESTMENT]
+                  description: Type of transaction
+                amount:
+                  type: number
+                  format: decimal
+                  description: Transaction amount
+                description:
+                  type: string
+                  description: Description of the transaction
+                date:
+                  type: string
+                  format: date-time
+                  description: Date of the transaction (defaults to current date/time)
+                categories:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: Array of category IDs
+                notes:
+                  type: string
+                  description: Additional notes about the transaction
+      responses:
+        "201":
+          description: Transaction created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/Transaction"
+        "400":
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Unauthorized - user not authenticated
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      tags:
+        - Transactions
+      summary: Get all transactions for authenticated user
+      description: Retrieves all transactions belonging to the authenticated user with pagination
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of transactions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          description: Unauthorized - user not authenticated
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /transactions/{id}:
+    get:
+      tags:
+        - Transactions
+      summary: Get transaction by ID
+      description: Retrieves a specific transaction by its ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Transaction ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Transaction retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/Transaction"
+        "400":
+          description: Invalid ID format
+        "401":
+          description: Unauthorized - user not authenticated
+        "403":
+          description: Forbidden - user doesn't own this transaction
+        "404":
+          description: Transaction not found
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    put:
+      tags:
+        - Transactions
+      summary: Update a transaction
+      description: Updates an existing transaction by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Transaction ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [INCOME, EXPENSE, TRANSFER, INVESTMENT]
+                amount:
+                  type: number
+                  format: decimal
+                description:
+                  type: string
+                date:
+                  type: string
+                  format: date-time
+                categories:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                notes:
+                  type: string
+      responses:
+        "200":
+          description: Transaction updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/Transaction"
+        "400":
+          description: Invalid input data
+        "401":
+          description: Unauthorized - user not authenticated
+        "403":
+          description: Forbidden - user doesn't own this transaction
+        "404":
+          description: Transaction not found
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      tags:
+        - Transactions
+      summary: Delete a transaction
+      description: Deletes a transaction by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Transaction ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Transaction deleted successfully
+        "400":
+          description: Invalid ID format
+        "401":
+          description: Unauthorized - user not authenticated
+        "403":
+          description: Forbidden - user doesn't own this transaction
+        "404":
+          description: Transaction not found
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /transactions/search:
+    get:
+      tags:
+        - Transactions
+      summary: Search transactions
+      description: Search transactions by keyword
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          description: Search keyword
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      transactions:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Transaction"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "400":
+          description: Missing search keyword
+        "401":
+          description: Unauthorized - user not authenticated
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /transactions/date-range:
+    get:
+      tags:
+        - Transactions
+      summary: Get transactions by date range
+      description: Retrieves transactions within a specified date range
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          required: true
+          description: Start date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: true
+          description: End date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Transactions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "400":
+          description: Missing date parameters
+        "401":
+          description: Unauthorized - user not authenticated
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /transactions/filter:
+    get:
+      tags:
+        - Transactions
+      summary: Filter transactions
+      description: Filter transactions by multiple criteria
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          description: Transaction type
+          schema:
+            type: string
+            enum: [INCOME, EXPENSE, TRANSFER, INVESTMENT]
+        - name: categoryId
+          in: query
+          description: Category ID
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          description: Start date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: End date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: minAmount
+          in: query
+          description: Minimum amount
+          schema:
+            type: number
+        - name: maxAmount
+          in: query
+          description: Maximum amount
+          schema:
+            type: number
+        - name: keyword
+          in: query
+          description: Search keyword
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Filtered transactions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "401":
+          description: Unauthorized - user not authenticated
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /transactions/summary:
+    get:
+      tags:
+        - Transactions
+      summary: Get transaction summary
+      description: Retrieves aggregated transaction data and statistics
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          description: Period for summary (day, week, month, year)
+          schema:
+            type: string
+            enum: [day, week, month, year]
+            default: month
+        - name: startDate
+          in: query
+          description: Start date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: End date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Transaction summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/TransactionSummary"
+        "401":
+          description: Unauthorized - user not authenticated
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /transactions/{id}/restore:
+    post:
+      tags:
+        - Transactions
+      summary: Restore a deleted transaction
+      description: Restores a previously deleted transaction
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Transaction ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Transaction restored successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: "#/components/schemas/Transaction"
+        "400":
+          description: Invalid ID format
+        "401":
+          description: Unauthorized - user not authenticated
+        "403":
+          description: Forbidden - user doesn't own this transaction
+        "404":
+          description: Transaction not found
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # Income Management
   /transactions/income:
     post:
+      tags:
+        - Transactions
       summary: Create income transaction
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/IncomeRequest'
+              $ref: "#/components/schemas/IncomeRequest"
       responses:
-        '200':
+        "200":
           description: Income transaction created successfully
-        '500':
+        "500":
           description: Failed to create income transaction
     get:
+      tags:
+        - Transactions
       summary: Get income transactions
       responses:
-        '200':
+        "200":
           description: Income transactions fetched successfully
-        '500':
+        "500":
           description: Failed to fetch income transactions
+
+  # Expense Management
   /transactions/expenses:
     post:
+      tags:
+        - Transactions
       summary: Create expense transaction
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ExpenseRequest'
+              $ref: "#/components/schemas/ExpenseRequest"
       responses:
-        '200':
+        "200":
           description: Expense transaction created successfully
-        '500':
+        "500":
           description: Failed to create expense transaction
     get:
+      tags:
+        - Transactions
       summary: Get expense transactions
       responses:
-        '200':
+        "200":
           description: Expense transactions fetched successfully
-        '500':
+        "500":
           description: Failed to fetch expense transactions
+
+  # Saving Management
   /transactions/savings:
     post:
+      tags:
+        - Transactions
       summary: Create saving transaction
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SavingRequest'
+              $ref: "#/components/schemas/SavingRequest"
       responses:
-        '200':
+        "200":
           description: Saving transaction created successfully
-        '500':
+        "500":
           description: Failed to create saving transaction
     get:
+      tags:
+        - Transactions
       summary: Get saving transactions
       responses:
-        '200':
+        "200":
           description: Saving transactions fetched successfully
-        '500':
+        "500":
           description: Failed to fetch saving transactions
+
+  # Saving Goals Management
   /goals:
     post:
+      tags:
+        - Goals Management
       summary: Create saving goal
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GoalRequest'
+              $ref: "#/components/schemas/GoalRequest"
       responses:
-        '201':
+        "201":
           description: Saving goal created successfully
-        '500':
+        "500":
           description: Failed to create saving goal
     get:
+      tags:
+        - Goals Management
       summary: Get saving goals
       responses:
-        '200':
+        "200":
           description: Saving goals fetched successfully
-        '500':
+        "500":
           description: Failed to fetch saving goals
     put:
+      tags:
+        - Goals Management
       summary: Update saving goal
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UpdateGoalRequest'
+              $ref: "#/components/schemas/UpdateGoalRequest"
       responses:
-        '200':
+        "200":
           description: Saving goal updated successfully
-        '500':
+        "500":
           description: Failed to update saving goal
     delete:
+      tags:
+        - Goals Management
       summary: Delete saving goal
       responses:
-        '200':
+        "200":
           description: Saving goal deleted successfully
-        '500':
+        "500":
           description: Failed to delete saving goal
-  /admin/users:
-    get:
-      summary: Get all users
-      responses:
-        '200':
-          description: Users fetched successfully
-        '500':
-          description: Failed to fetch users
-  /admin/users/{id}:
-    get:
-      summary: Get user by ID
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: User fetched successfully
-        '500':
-          description: Failed to fetch user
-    put:
-      summary: Update user
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateUserRequest'
-      responses:
-        '200':
-          description: User updated successfully
-        '500':
-          description: Failed to update user
-    delete:
-      summary: Delete user
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: User deleted successfully
-        '500':
-          description: Failed to delete user
+
+  # Report Generation
   /reports/csv:
     get:
+      tags:
+        - Reports Management
       summary: Generate CSV report
       responses:
-        '200':
+        "200":
           description: CSV report generated successfully
-        '500':
+        "500":
           description: Failed to generate CSV report
   /reports/pdf:
     get:
+      tags:
+        - Reports Management
       summary: Generate PDF report
       responses:
-        '200':
+        "200":
           description: PDF report generated successfully
-        '500':
+        "500":
           description: Failed to generate PDF report
+# Component for authentication
 components:
   schemas:
-    SignupRequest:
+    RegistrationRequest:
       type: object
       properties:
         username:
           type: string
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: john@example.com
         password:
           type: string
+          format: password
+          example: P@ssw0rd123
+      required:
+        - username
+        - email
+        - password
+
     LoginRequest:
       type: object
       properties:
-        username:
+        email:
           type: string
+          example: john@example.com
+          description: Can be either email or username
         password:
           type: string
-    TwoFactorAuthRequest:
+          format: password
+          example: P@ssw0rd123
+      required:
+        - email
+        - password
+
+    UpdateProfileRequest:
       type: object
       properties:
-        token:
+        username:
           type: string
-    UpdateUserProfileRequest:
+          example: johndoe2
+        email:
+          type: string
+          format: email
+          example: john.new@example.com
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        phone:
+          type: string
+          example: "+123456789"
+        address:
+          type: string
+          example: "123 Main St"
+        city:
+          type: string
+          example: "Anytown"
+        state:
+          type: string
+          example: "Anystate"
+        country:
+          type: string
+          example: "USA"
+        zipCode:
+          type: string
+          example: "12345"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        isActive:
+          type: boolean
+        twoFactorEnabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        roles:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+
+    UserDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        isActive:
+          type: boolean
+        twoFactorEnabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        roles:
+          type: array
+          items:
+            $ref: "#/components/schemas/Role"
+        userData:
+          $ref: "#/components/schemas/UserData"
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transaction"
+        savingGoals:
+          type: array
+          items:
+            $ref: "#/components/schemas/SavingGoal"
+        stats:
+          type: object
+          properties:
+            transactionsCount:
+              type: integer
+            savingGoalsCount:
+              type: integer
+            accountAgeInDays:
+              type: integer
+
+    UserData:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        country:
+          type: string
+        zipCode:
+          type: string
+    # Add to the components/schemas section in swagger.yaml
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum: [INCOME, EXPENSE, TRANSFER, INVESTMENT]
+        description:
+          type: string
+        isDeleted:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        userId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: decimal
+          example: 125.50
+        description:
+          type: string
+          example: "Monthly grocery shopping"
+        date:
+          type: string
+          format: date-time
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/Category"
+        isDeleted:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time 
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of items
+          example: 45
+        page:
+          type: integer
+          description: Current page
+          example: 2
+        limit:
+          type: integer
+          description: Items per page
+          example: 10
+        pages:
+          type: integer
+          description: Total number of pages
+          example: 5
+
+    Error:
+        type: object
+        properties:
+          success:
+            type: boolean
+            example: false
+          message:
+            type: string
+            example: "Failed to retrieve transactions"
+          error:
+            type: string
+            example: "Database connection error"
+
+    SavingGoal:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        targetAmount:
+          type: number
+          format: decimal
+        currentAmount:
+          type: number
+          format: decimal
+        deadline:
+          type: string
+          format: date-time
+        isAchieved:
+          type: boolean
+
+    Role:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Permission"
+
+    Permission:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        action:
+          type: string
+        details:
+          type: object
+        ipAddress:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        user:
+          type: object
+          properties:
+            username:
+              type: string
+            email:
+              type: string
+
+    CreateUserRequest:
       type: object
       properties:
         username:
           type: string
         email:
           type: string
+          format: email
         password:
           type: string
+          format: password
+        roles:
+          type: array
+          items:
+            type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+      required:
+        - username
+        - email
+        - password
+
+    CreateRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+        - name
+
+    CreatePermissionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required:
+        - username
+        - email
+        - password
+
     IncomeRequest:
       type: object
       properties:
         amount:
           type: number
+          format: decimal
+        description:
+          type: string
+        date:
+          type: string
+          format: date-time
+        categories:
+          type: array
+          items:
+            type: string
+      required:
+        - amount
+
     ExpenseRequest:
       type: object
       properties:
         amount:
           type: number
+          format: decimal
+        description:
+          type: string
+        date:
+          type: string
+          format: date-time
+        categories:
+          type: array
+          items:
+            type: string
+      required:
+        - amount
+
     SavingRequest:
       type: object
       properties:
         amount:
           type: number
+          format: decimal
+        description:
+          type: string
+        date:
+          type: string
+          format: date-time
+        goalId:
+          type: string
+          format: uuid
+      required:
+        - amount
+
     GoalRequest:
       type: object
       properties:
         name:
           type: string
-        target:
+        targetAmount:
           type: number
+          format: decimal
+        deadline:
+          type: string
+          format: date-time
+        description:
+          type: string
+      required:
+        - name
+        - targetAmount
+
     UpdateGoalRequest:
       type: object
       properties:
+        id:
+          type: string
+          format: uuid
         name:
           type: string
-        target:
+        targetAmount:
           type: number
-        progress:
+          format: decimal
+        currentAmount:
           type: number
+          format: decimal
+        deadline:
+          type: string
+          format: date-time
+        isAchieved:
+          type: boolean
+      required:
+        - id
+
     UpdateUserRequest:
       type: object
       properties:
@@ -321,5 +2804,64 @@ components:
           type: string
         email:
           type: string
-        password:
-          type: string
+          format: email
+        roles:
+          type: array
+          items:
+            type: string
+      TransactionSummary:
+        type: object
+        properties:
+          period:
+            type: string
+            example: "month"
+          startDate:
+            type: string
+            format: date
+          endDate:
+            type: string
+            format: date
+          income:
+            type: object
+            properties:
+              total:
+                type: number
+                example: 3500.00
+              count:
+                type: integer
+                example: 3
+          expenses:
+            type: object
+            properties:
+              total:
+                type: number
+                example: 2100.50
+              count:
+                type: integer
+                example: 15
+          balance:
+            type: number
+            example: 1399.50
+          categorySummary:
+            type: array
+            items:
+              type: object
+              properties:
+                categoryId:
+                  type: string
+                  format: uuid
+                categoryName:
+                  type: string
+                  example: "Groceries"
+                transactionCount:
+                  type: integer
+                  example: 4
+                totalAmount:
+                  type: number
+                  example: 520.75
+
+    securitySchemes:
+      bearerAuth:
+        type: http
+        scheme: bearer
+        bearerFormat: JWT

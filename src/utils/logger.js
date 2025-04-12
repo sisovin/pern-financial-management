@@ -200,4 +200,4 @@ const debug = (message, meta = {}) => logger.debug(message, { ...meta });
 export default httpLogger;
 
 // Named exports for other utilities
-export { logger, errorHandler, error, warn, info, http, debug };
+export { logger, errorHandler, error, warn, info, http, debug};

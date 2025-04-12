@@ -107,8 +107,23 @@ export async function registerUser(userData) {
  * @param {string} emailOrUsername - User's email or username
  * @param {string} password - User's password
  * @returns {Object} User tokens and profile
+ * @throws {Error} If login validation or authentication fails
  */
 export async function loginUser(emailOrUsername, password) {
+  // Basic input validation within the service
+  if (!emailOrUsername || typeof emailOrUsername !== 'string') {
+    logger.warn('Login failed: Missing or invalid emailOrUsername');
+    throw new Error('Email/username is required');
+  }
+  
+  if (!password || typeof password !== 'string') {
+    logger.warn('Login failed: Missing or invalid password');
+    throw new Error('Password is required');
+  }
+  
+  // Trim inputs to prevent whitespace issues
+  emailOrUsername = emailOrUsername.trim();
+  
   logger.info('Login attempt', { emailOrUsername });
   
   // Find user by email or username
@@ -132,54 +147,126 @@ export async function loginUser(emailOrUsername, password) {
     throw new Error('User not found');
   }
   
+  // Check for account lockout (if implemented)
+  if (user.loginAttempts >= 5) {
+    const lockoutTime = new Date(user.lockoutUntil || 0);
+    const currentTime = new Date();
+    
+    if (lockoutTime > currentTime) {
+      logger.warn('Login failed: account locked', { 
+        userId: user.id, 
+        email: user.email,
+        lockoutUntil: lockoutTime
+      });
+      throw new Error('Account is temporarily locked. Please try again later.');
+    }
+  }
+  
   // Verify password
-  const isValidPassword = await verifyPassword(user.password, password);
-  if (!isValidPassword) {
-    logger.warn('Login failed: invalid password', { 
+  try {
+    const isValidPassword = await verifyPassword(user.password, password);
+    if (!isValidPassword) {
+      // Increment failed login attempts (if implemented)
+      // await prisma.user.update({
+      //   where: { id: user.id },
+      //   data: { 
+      //     loginAttempts: (user.loginAttempts || 0) + 1,
+      //     lockoutUntil: user.loginAttempts >= 4 ? new Date(Date.now() + 15 * 60 * 1000) : null
+      //   }
+      // });
+      
+      logger.warn('Login failed: invalid password', { 
+        userId: user.id, 
+        email: user.email 
+      });
+      throw new Error('Invalid password');
+    }
+    
+    // Reset login attempts on successful login (if implemented)
+    // if (user.loginAttempts > 0) {
+    //   await prisma.user.update({
+    //     where: { id: user.id },
+    //     data: { 
+    //       loginAttempts: 0,
+    //       lockoutUntil: null
+    //     }
+    //   });
+    // }
+  } catch (error) {
+    if (error.message === 'Invalid password') {
+      throw error; // Re-throw the specific error
+    }
+    
+    logger.error('Password verification error', {
+      userId: user.id,
+      error: error.message,
+      stack: error.stack
+    });
+    throw new Error('Authentication failed');
+  }
+  
+  // Check if 2FA is required
+  if (user.twoFactorEnabled) {
+    // Return partial auth indicating 2FA is required
+    logger.info('Login requires 2FA verification', { 
       userId: user.id, 
       email: user.email 
     });
-    throw new Error('Invalid password');
+    
+    return {
+      requiresTwoFactor: true,
+      userId: user.id,
+      // Don't provide tokens yet - they'll be provided after 2FA verification
+    };
   }
   
   // Generate tokens
-  const accessToken = generateAccessToken(user);
-  const refreshToken = generateRefreshToken(user);
-  
-  // Store refresh token in Redis with user ID as key
-  if (redisClient && isConnected) {
-    try {
-      await redisClient.set(
-        `refresh_token:${user.id}`, 
-        refreshToken,
-        { EX: 60 * 60 * 24 * 7 } // 7 days
-      );
-      logger.debug('Refresh token stored in Redis', { userId: user.id });
-    } catch (error) {
-      logger.error('Error storing refresh token in Redis', {
-        userId: user.id,
-        error: error.message,
-        stack: error.stack
-      });
-      // Don't fail login if Redis fails - just log the error
+  try {
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+    
+    // Store refresh token in Redis with user ID as key
+    if (redisClient && isConnected) {
+      try {
+        await redisClient.set(
+          `refresh_token:${user.id}`, 
+          refreshToken,
+          { EX: 60 * 60 * 24 * 7 } // 7 days
+        );
+        logger.debug('Refresh token stored in Redis', { userId: user.id });
+      } catch (error) {
+        logger.error('Error storing refresh token in Redis', {
+          userId: user.id,
+          error: error.message,
+          stack: error.stack
+        });
+        // Don't fail login if Redis fails - just log the error
+      }
+    } else {
+      logger.warn('Redis not connected, refresh token not stored', { userId: user.id });
     }
-  } else {
-    logger.warn('Redis not connected, refresh token not stored', { userId: user.id });
+    
+    // Don't return the password
+    const { password: _, ...userWithoutPassword } = user;
+    
+    logger.info('User logged in successfully', { 
+      userId: user.id, 
+      email: user.email 
+    });
+    
+    return {
+      user: userWithoutPassword,
+      accessToken,
+      refreshToken
+    };
+  } catch (error) {
+    logger.error('Error generating auth tokens', {
+      userId: user.id,
+      error: error.message,
+      stack: error.stack
+    });
+    throw new Error('Authentication failed');
   }
-  
-  // Don't return the password
-  const { password: _, ...userWithoutPassword } = user;
-  
-  logger.info('User logged in successfully', { 
-    userId: user.id, 
-    email: user.email 
-  });
-  
-  return {
-    user: userWithoutPassword,
-    accessToken,
-    refreshToken
-  };
 }
 
 /**

@@ -196,3 +196,47 @@ export const hasPermissions = (requiredPermissions) => {
     }
   };
 };
+
+export const validateTransaction = (req, res, next) => {
+  const { type, amount, description } = req.body;
+  const errors = [];
+
+  // Validate transaction type
+  if (!type) {
+    errors.push("Transaction type is required");
+  } else if (!["INCOME", "EXPENSE", "TRANSFER"].includes(type)) {
+    errors.push("Transaction type must be INCOME, EXPENSE, or TRANSFER");
+  }
+
+  // Validate amount
+  if (!amount) {
+    errors.push("Transaction amount is required");
+  } else if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+    errors.push("Transaction amount must be a positive number");
+  }
+
+  // Validate description
+  if (!description) {
+    errors.push("Transaction description is required");
+  } else if (description.length < 3 || description.length > 100) {
+    errors.push("Transaction description must be between 3 and 100 characters");
+  }
+
+  // If there are errors, return a 400 response
+  if (errors.length > 0) {
+    logger.warn("Transaction validation failed", {
+      errors,
+      body: req.body,
+      userId: req.user?.id,
+    });
+
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors,
+    });
+  }
+
+  // If everything is valid, proceed to the controller
+  next();
+};

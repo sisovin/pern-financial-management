@@ -1,5 +1,19 @@
-import * as userService from '../services/userService.js';
+import {
+  updateUserPreferences,
+  changeUserPassword,
+  updateFinancialProfile,
+  getUsers as getUsersService, // Rename the imported function
+  getUserById as getUserByIdService, // Rename this one too for consistency
+} from "../services/userService.js";
 import { logger } from "../utils/logger.js";
+import {
+  validateUserPreferences,
+  validatePasswordChange,
+  validateFinancialProfile,
+  validateActivityFilters,
+  validateAccountSettings
+} from "../validators/userValidator.js";
+import { ValidationError } from "../validators/authValidator.js";
 
 /**
  * Get all users with pagination
@@ -21,7 +35,7 @@ export const getUsers = async (req, res, next) => {
       ip: req.ip
     });
     
-    const result = await userService.getUsers(page, limit, includeDeleted);
+    const result = await getUsersService(page, limit, includeDeleted); // Use the renamed import
     
     logger.info('Successfully retrieved users list', { 
       count: result.users.length,
@@ -62,7 +76,7 @@ export const getUserById = async (req, res, next) => {
       ip: req.ip
     });
     
-    const user = await userService.getUserById(id);
+    const user = await getUserByIdService(id); // Use the renamed import
     
     if (!user) {
       logger.info('User not found', { 
@@ -409,3 +423,291 @@ export const setUserActiveStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Update user preferences controller
+ */
+export async function updatePreferences(req, res) {
+  try {
+    const userId = req.user.id;
+    
+    // Validate and sanitize preferences data
+    const validData = validateUserPreferences(req.body);
+    
+    logger.debug('User preferences update request with validated data', { 
+      userId, 
+      fields: Object.keys(validData)
+    });
+    
+    const updatedPreferences = await updateUserPreferences(userId, validData);
+    
+    logger.info('User preferences updated successfully', { userId, ip: req.ip });
+    
+    res.status(200).json({
+      error: false,
+      message: 'Preferences updated successfully',
+      data: updatedPreferences
+    });
+  } catch (error) {
+    // Handle ValidationError separately
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        error: true,
+        message: 'Validation failed',
+        errors: error.fieldErrors
+      });
+    }
+    
+    logger.error('User preferences update error', {
+      userId: req.user?.id,
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip
+    });
+    
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        error: true,
+        message: 'User not found'
+      });
+    }
+    
+    res.status(500).json({
+      error: true,
+      message: 'Failed to update preferences'
+    });
+  }
+}
+
+/**
+ * Change password controller
+ */
+export async function changePassword(req, res) {
+  try {
+    const userId = req.user.id;
+    
+    // Validate and sanitize password change data
+    const validData = validatePasswordChange(req.body);
+    
+    logger.debug('Password change request', { userId });
+    
+    const result = await changeUserPassword(
+      userId, 
+      validData.currentPassword, 
+      validData.newPassword
+    );
+    
+    logger.info('Password changed successfully', { userId, ip: req.ip });
+    
+    res.status(200).json({
+      error: false,
+      message: result.message || 'Password changed successfully'
+    });
+  } catch (error) {
+    // Handle ValidationError separately
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        error: true,
+        message: 'Validation failed',
+        errors: error.fieldErrors
+      });
+    }
+    
+    logger.error('Password change error', {
+      userId: req.user?.id,
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip
+    });
+    
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        error: true,
+        message: 'User not found'
+      });
+    }
+    
+    if (error.message === 'Current password is incorrect') {
+      return res.status(401).json({
+        error: true,
+        message: 'Current password is incorrect'
+      });
+    }
+    
+    res.status(500).json({
+      error: true,
+      message: 'Failed to change password'
+    });
+  }
+}
+
+/**
+ * Update financial profile controller
+ */
+export async function updateFinancialProfileController(req, res) {
+  try {
+    const userId = req.user.id;
+    
+    // Validate and sanitize financial profile data
+    const validData = validateFinancialProfile(req.body);
+    
+    logger.debug('Financial profile update request with validated data', { 
+      userId, 
+      fields: Object.keys(validData)
+    });
+    
+    const updatedProfile = await updateFinancialProfile(userId, validData);
+    
+    logger.info('Financial profile updated successfully', { userId, ip: req.ip });
+    
+    res.status(200).json({
+      error: false,
+      message: 'Financial profile updated successfully',
+      data: updatedProfile
+    });
+  } catch (error) {
+    // Handle ValidationError separately
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        error: true,
+        message: 'Validation failed',
+        errors: error.fieldErrors
+      });
+    }
+    
+    logger.error('Financial profile update error', {
+      userId: req.user?.id,
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip
+    });
+    
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        error: true,
+        message: 'User not found'
+      });
+    }
+    
+    res.status(500).json({
+      error: true,
+      message: 'Failed to update financial profile'
+    });
+  }
+}
+
+/**
+ * Update account settings controller
+ */
+export async function updateAccountSettings(req, res) {
+  try {
+    const userId = req.user.id;
+    
+    // Validate and sanitize account settings data
+    const validData = validateAccountSettings(req.body);
+    
+    logger.debug('Account settings update request with validated data', { 
+      userId, 
+      fields: Object.keys(validData)
+    });
+    
+    // We need to implement this service function
+    const updatedSettings = await updateUserAccountSettings(userId, validData);
+    
+    logger.info('Account settings updated successfully', { userId, ip: req.ip });
+    
+    res.status(200).json({
+      error: false,
+      message: 'Account settings updated successfully',
+      data: updatedSettings
+    });
+  } catch (error) {
+    // Handle ValidationError separately
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        error: true,
+        message: 'Validation failed',
+        errors: error.fieldErrors
+      });
+    }
+    
+    logger.error('Account settings update error', {
+      userId: req.user?.id,
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip
+    });
+    
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        error: true,
+        message: 'User not found'
+      });
+    }
+    
+    res.status(500).json({
+      error: true,
+      message: 'Failed to update account settings'
+    });
+  }
+}
+
+/**
+ * Get filtered user activities
+ */
+export async function getFilteredActivities(req, res) {
+  try {
+    const userId = req.user.id;
+    
+    // Validate and sanitize activity filters
+    const validFilters = validateActivityFilters(req.query);
+    
+    logger.debug('Activity filter request with validated data', { 
+      userId, 
+      filters: Object.keys(validFilters)
+    });
+    
+    // We need to implement this service function
+    const activities = await getUserActivities(userId, validFilters);
+    
+    logger.info('Retrieved filtered activities successfully', { 
+      userId, 
+      count: activities.length,
+      ip: req.ip 
+    });
+    
+    res.status(200).json({
+      error: false,
+      message: 'Activities retrieved successfully',
+      data: activities
+    });
+  } catch (error) {
+    // Handle ValidationError separately
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        error: true,
+        message: 'Validation failed',
+        errors: error.fieldErrors
+      });
+    }
+    
+    logger.error('Activity filter error', {
+      userId: req.user?.id,
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip
+    });
+    
+    if (error.message === 'User not found') {
+      return res.status(404).json({
+        error: true,
+        message: 'User not found'
+      });
+    }
+    
+    res.status(500).json({
+      error: true,
+      message: 'Failed to retrieve activities'
+    });
+  }
+}

@@ -1,70 +1,44 @@
 // Auth logic (JWT, Argon2, Redis, 2FA)
-import { registerUser, loginUser, logoutUser, refreshUserToken, requestPasswordResetService, resetPasswordService, verifyEmailService, getUserProfileService, updateUserProfileService } from '../services/authService.js';
+import {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshUserToken,
+  requestPasswordResetService,
+  resetPasswordService,
+  verifyEmailService,
+  getUserProfileService,
+  updateUserProfileService,
+} from "../services/authService.js";
 import { logger } from "../utils/logger.js";
+import {
+  validateRegistration,
+  validateLogin,
+  validatePasswordResetRequest,
+  validatePasswordReset,
+  validateEmailVerification,
+  validateProfileUpdate,
+  ValidationError,
+} from "../validators/authValidator.js";
 
 /**
  * Register controller
  */
 export async function register(req, res) {
   try {
-    const { username, email, password, firstName, lastName } = req.body;
+    // Validate and sanitize inputs
+    const validData = validateRegistration(req.body);
     
-    logger.debug('Registration attempt', { email, username });
-    
-    // Validate required fields
-    if (!username || !email || !password) {
-      logger.info('Registration validation failed: missing required fields', {
-        hasUsername: !!username,
-        hasEmail: !!email,
-        hasPassword: !!password,
-        ip: req.ip
-      });
-      
-      return res.status(400).json({ 
-        error: true, 
-        message: 'Username, email and password are required' 
-      });
-    }
-    
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      logger.info('Registration validation failed: invalid email format', {
-        email,
-        ip: req.ip
-      });
-      
-      return res.status(400).json({ 
-        error: true, 
-        message: 'Invalid email format' 
-      });
-    }
-    
-    // Password strength validation
-    if (password.length < 8) {
-      logger.info('Registration validation failed: password too short', {
-        passwordLength: password.length,
-        ip: req.ip
-      });
-      
-      return res.status(400).json({
-        error: true,
-        message: 'Password must be at least 8 characters long'
-      });
-    }
-    
-    const newUser = await registerUser({
-      username,
-      email,
-      password,
-      firstName,
-      lastName
+    logger.debug('Registration attempt with validated data', { 
+      email: validData.email
     });
+    
+    const newUser = await registerUser(validData);
     
     logger.info('User registered successfully', {
       userId: newUser.id,
-      email,
-      username,
+      email: validData.email,
+      username: validData.username,
       ip: req.ip
     });
     
@@ -74,7 +48,16 @@ export async function register(req, res) {
       data: newUser
     });
   } catch (error) {
-    // Replace console.error with logger
+    // Handle ValidationError separately
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        error: true,
+        message: 'Validation failed',
+        errors: error.fieldErrors
+      });
+    }
+    
+    // Handle other errors
     logger.error('Registration error', {
       email: req.body?.email,
       username: req.body?.username,
@@ -102,24 +85,14 @@ export async function register(req, res) {
  */
 export async function login(req, res) {
   try {
-    const { email, password } = req.body;
+    // Validate and sanitize inputs
+    const validData = validateLogin(req.body);
     
-    logger.debug('Login attempt', { email, ip: req.ip });
-
-    if (!email || !password) {
-      logger.info('Login validation failed: missing credentials', {
-        hasEmail: !!email,
-        hasPassword: !!password,
-        ip: req.ip
-      });
-      
-      return res.status(400).json({
-        error: true,
-        message: "Email and password are required",
-      });
-    }
+    logger.debug('Login attempt with validated data', { 
+      emailOrUsername: validData.email 
+    });
     
-    const loginResult = await loginUser(email, password);
+    const loginResult = await loginUser(validData.email, validData.password);
     
     // Set refresh token in HTTP-only cookie
     res.cookie('refreshToken', loginResult.refreshToken, {
@@ -144,9 +117,18 @@ export async function login(req, res) {
       }
     });
   } catch (error) {
-    // Replace console.error with logger
+    // Handle ValidationError separately
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        error: true,
+        message: 'Validation failed',
+        errors: error.fieldErrors
+      });
+    }
+    
+    // Handle other errors
     logger.error('Login error', {
-      email: req.body?.email,
+      emailOrUsername: req.body?.email,
       error: error.message,
       stack: error.stack,
       ip: req.ip
@@ -166,42 +148,6 @@ export async function login(req, res) {
   }
 }
 
-/**
- * Logout controller
- */
-export async function logout(req, res) {
-  try {
-    const userId = req.user.userId;
-    
-    logger.debug('Logout attempt', { userId, ip: req.ip });
-    
-    await logoutUser(userId);
-    
-    // Clear refresh token cookie
-    res.clearCookie('refreshToken');
-    
-    logger.info('User logged out successfully', { userId, ip: req.ip });
-    
-    res.status(200).json({
-      error: false,
-      message: 'Logout successful'
-    });
-  } catch (error) {
-    // Replace console.error with logger
-    logger.error('Logout error', {
-      userId: req.user?.userId,
-      error: error.message,
-      stack: error.stack,
-      ip: req.ip
-    });
-    
-    res.status(500).json({
-      error: true,
-      message: 'Logout failed'
-    });
-  }
-}
-
 // Add these functions after your existing controllers
 
 /**
@@ -211,58 +157,61 @@ export async function refreshToken(req, res) {
   try {
     // Get refresh token from cookie
     const refreshToken = req.cookies.refreshToken;
-    
+
     if (!refreshToken) {
-      logger.info('Token refresh failed: No refresh token provided', { ip: req.ip });
+      logger.info("Token refresh failed: No refresh token provided", {
+        ip: req.ip,
+      });
       return res.status(401).json({
         error: true,
-        message: 'Refresh token is required'
+        message: "Refresh token is required",
       });
     }
-    
+
     const tokens = await refreshUserToken(refreshToken);
-    
+
     // Set new refresh token in HTTP-only cookie
-    res.cookie('refreshToken', tokens.refreshToken, {
+    res.cookie("refreshToken", tokens.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
-    
-    logger.info('Token refreshed successfully', { ip: req.ip });
-    
+
+    logger.info("Token refreshed successfully", { ip: req.ip });
+
     res.status(200).json({
       error: false,
-      message: 'Token refreshed successfully',
+      message: "Token refreshed successfully",
       data: {
-        accessToken: tokens.accessToken
-      }
+        accessToken: tokens.accessToken,
+      },
     });
   } catch (error) {
-    logger.error('Token refresh error', {
+    logger.error("Token refresh error", {
       error: error.message,
       stack: error.stack,
-      ip: req.ip
+      ip: req.ip,
     });
-    
-    if (error.message === 'Invalid refresh token' || 
-        error.message === 'User not found' ||
-        error.name === 'JsonWebTokenError' ||
-        error.name === 'TokenExpiredError') {
-      
+
+    if (
+      error.message === "Invalid refresh token" ||
+      error.message === "User not found" ||
+      error.name === "JsonWebTokenError" ||
+      error.name === "TokenExpiredError"
+    ) {
       // Clear the invalid refresh token
-      res.clearCookie('refreshToken');
-      
+      res.clearCookie("refreshToken");
+
       return res.status(401).json({
         error: true,
-        message: 'Invalid or expired refresh token'
+        message: "Invalid or expired refresh token",
       });
     }
-    
+
     res.status(500).json({
       error: true,
-      message: 'Failed to refresh token'
+      message: "Failed to refresh token",
     });
   }
 }
@@ -272,23 +221,25 @@ export async function refreshToken(req, res) {
  */
 export async function requestPasswordReset(req, res) {
   try {
-    const { email } = req.body;
+    // Validate and sanitize inputs
+    const validData = validatePasswordResetRequest(req.body);
     
-    if (!email) {
-      logger.info('Password reset request failed: No email provided', { ip: req.ip });
-      return res.status(400).json({
-        error: true,
-        message: 'Email is required'
-      });
-    }
-    
-    const result = await requestPasswordResetService(email);
+    const result = await requestPasswordResetService(validData.email);
     
     res.status(200).json({
       error: false,
       message: result.message || 'If your email exists in our system, you will receive a password reset link.'
     });
   } catch (error) {
+    // Handle ValidationError separately
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        error: true,
+        message: 'Validation failed',
+        errors: error.fieldErrors
+      });
+    }
+    
     logger.error('Password reset request error', {
       email: req.body?.email,
       error: error.message,
@@ -308,42 +259,29 @@ export async function requestPasswordReset(req, res) {
  */
 export async function resetPassword(req, res) {
   try {
-    const { userId, token, newPassword } = req.body;
+    // Validate and sanitize inputs
+    const validData = validatePasswordReset(req.body);
     
-    if (!userId || !token || !newPassword) {
-      logger.info('Password reset failed: Missing required fields', {
-        hasUserId: !!userId,
-        hasToken: !!token,
-        hasNewPassword: !!newPassword,
-        ip: req.ip
-      });
-      
-      return res.status(400).json({
-        error: true,
-        message: 'User ID, token, and new password are required'
-      });
-    }
-    
-    // Validate password strength
-    if (newPassword.length < 8) {
-      logger.info('Password reset failed: Password too short', {
-        passwordLength: newPassword.length,
-        ip: req.ip
-      });
-      
-      return res.status(400).json({
-        error: true,
-        message: 'Password must be at least 8 characters long'
-      });
-    }
-    
-    const result = await resetPasswordService(userId, token, newPassword);
+    const result = await resetPasswordService(
+      validData.userId, 
+      validData.token, 
+      validData.newPassword
+    );
     
     res.status(200).json({
       error: false,
       message: result.message || 'Password has been reset successfully'
     });
   } catch (error) {
+    // Handle ValidationError separately
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        error: true,
+        message: 'Validation failed',
+        errors: error.fieldErrors
+      });
+    }
+    
     logger.error('Password reset error', {
       userId: req.body?.userId,
       error: error.message,
@@ -370,28 +308,25 @@ export async function resetPassword(req, res) {
  */
 export async function verifyEmail(req, res) {
   try {
-    const { userId, token } = req.body;
+    // Validate and sanitize inputs
+    const validData = validateEmailVerification(req.body);
     
-    if (!userId || !token) {
-      logger.info('Email verification failed: Missing required fields', {
-        hasUserId: !!userId,
-        hasToken: !!token,
-        ip: req.ip
-      });
-      
-      return res.status(400).json({
-        error: true,
-        message: 'User ID and token are required'
-      });
-    }
-    
-    const result = await verifyEmailService(userId, token);
+    const result = await verifyEmailService(validData.userId, validData.token);
     
     res.status(200).json({
       error: false,
       message: result.message || 'Email has been verified successfully'
     });
   } catch (error) {
+    // Handle ValidationError separately
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        error: true,
+        message: 'Validation failed',
+        errors: error.fieldErrors
+      });
+    }
+    
     logger.error('Email verification error', {
       userId: req.body?.userId,
       error: error.message,
@@ -477,28 +412,16 @@ export async function getUserProfile(req, res) {
 export async function updateUserProfile(req, res) {
   try {
     const userId = req.user.id;
-    const profileData = req.body;
     
-    logger.debug('User profile update request', { userId, ip: req.ip });
+    // Validate and sanitize profile update data
+    const validData = validateProfileUpdate(req.body);
     
-    // Validate data
-    if (profileData.email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(profileData.email)) {
-        logger.info('Profile update validation failed: invalid email format', {
-          email: profileData.email,
-          userId,
-          ip: req.ip
-        });
-        
-        return res.status(400).json({ 
-          error: true, 
-          message: 'Invalid email format' 
-        });
-      }
-    }
+    logger.debug('User profile update request with validated data', { 
+      userId, 
+      fields: Object.keys(validData)
+    });
     
-    const updatedProfile = await updateUserProfileService(userId, profileData);
+    const updatedProfile = await updateUserProfileService(userId, validData);
     
     logger.info('User profile updated successfully', { userId, ip: req.ip });
     
@@ -508,6 +431,15 @@ export async function updateUserProfile(req, res) {
       data: updatedProfile
     });
   } catch (error) {
+    // Handle ValidationError separately
+    if (error instanceof ValidationError) {
+      return res.status(400).json({
+        error: true,
+        message: 'Validation failed',
+        errors: error.fieldErrors
+      });
+    }
+    
     logger.error('User profile update error', {
       userId: req.user?.id,
       error: error.message,
@@ -532,6 +464,42 @@ export async function updateUserProfile(req, res) {
     res.status(500).json({
       error: true,
       message: 'Failed to update profile'
+    });
+  }
+}
+
+/**
+ * Logout controller
+ */
+export async function logout(req, res) {
+  try {
+    const userId = req.user.userId;
+
+    logger.debug("Logout attempt", { userId, ip: req.ip });
+
+    await logoutUser(userId);
+
+    // Clear refresh token cookie
+    res.clearCookie("refreshToken");
+
+    logger.info("User logged out successfully", { userId, ip: req.ip });
+
+    res.status(200).json({
+      error: false,
+      message: "Logout successful",
+    });
+  } catch (error) {
+    // Replace console.error with logger
+    logger.error("Logout error", {
+      userId: req.user?.userId,
+      error: error.message,
+      stack: error.stack,
+      ip: req.ip,
+    });
+
+    res.status(500).json({
+      error: true,
+      message: "Logout failed",
     });
   }
 }

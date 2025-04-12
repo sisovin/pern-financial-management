@@ -22,6 +22,7 @@ model User {
   savingGoals     SavingGoal[]
   passwordReset   PasswordReset?
   emailVerification EmailVerification?
+  auditLogs       AuditLog[]
   twoFactorEnabled Boolean     @default(false)
   twoFactorSecret  String?
   isDeleted       Boolean     @default(false)
@@ -182,4 +183,20 @@ enum TransactionType {
   EXPENSE
   TRANSFER
   INVESTMENT
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  details   Json?
+  ipAddress String?
+  timestamp DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([action])
+  @@index([timestamp])
+  @@map("audit_logs")
 }
