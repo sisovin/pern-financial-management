@@ -1,17 +1,50 @@
 node_modules
-# Keep environment variables out of version control
+# Dependency directories
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment variables
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# Documentation files
-docs/AuthFunctionality.md
-docs/CodeCitations.md
-docs/DbConnnection.md
-docs/generateEnv.md
-docs/Learn_Logger.md
-docs/Roadmap.md
-docs/UsersFunctionality.md
+# Build directories
+/dist
+/build
+/out
 
-docs/*.md
+# Project-specific directories to ignore
+/backend
+/frontend-web
+/frontend-lynx
 
-# Logs
-logs/
+# IDE and editor files
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Coverage directories
+/coverage
+
+# Log files
+logs
+*.log
+
+# Cache
+.cache/
+.npm
+.eslintcache
+.stylelintcache

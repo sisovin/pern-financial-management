@@ -2809,56 +2809,57 @@ components:
           type: array
           items:
             type: string
-      TransactionSummary:
-        type: object
-        properties:
-          period:
-            type: string
-            example: "month"
-          startDate:
-            type: string
-            format: date
-          endDate:
-            type: string
-            format: date
-          income:
+            
+    TransactionSummary:
+      type: object
+      properties:
+        period:
+          type: string
+          example: "month"
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        income:
+          type: object
+          properties:
+            total:
+              type: number
+              example: 3500.00
+            count:
+              type: integer
+              example: 3
+        expenses:
+          type: object
+          properties:
+            total:
+              type: number
+              example: 2100.50
+            count:
+              type: integer
+              example: 15
+        balance:
+          type: number
+          example: 1399.50
+        categorySummary:
+          type: array
+          items:
             type: object
             properties:
-              total:
-                type: number
-                example: 3500.00
-              count:
+              categoryId:
+                type: string
+                format: uuid
+              categoryName:
+                type: string
+                example: "Groceries"
+              transactionCount:
                 type: integer
-                example: 3
-          expenses:
-            type: object
-            properties:
-              total:
+                example: 4
+              totalAmount:
                 type: number
-                example: 2100.50
-              count:
-                type: integer
-                example: 15
-          balance:
-            type: number
-            example: 1399.50
-          categorySummary:
-            type: array
-            items:
-              type: object
-              properties:
-                categoryId:
-                  type: string
-                  format: uuid
-                categoryName:
-                  type: string
-                  example: "Groceries"
-                transactionCount:
-                  type: integer
-                  example: 4
-                totalAmount:
-                  type: number
-                  example: 520.75
+                example: 520.75
 
     securitySchemes:
       bearerAuth:
