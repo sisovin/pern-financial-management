@@ -1,0 +1,50 @@
+.splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.light-splash {
+  background-color: #ffffff;
+  color: #212529;
+}
+
+.dark-splash {
+  background-color: #1a1a1a;
+  color: #f0f0f0;
+}
+
+.splash-screen__center {
+  text-align: center;
+}
+
+.splash-screen__logo {
+  width: 100px;
+  height: 100px;
+  animation: pulse 2s infinite;
+}
+
+.splash-screen__text {
+  margin-top: 20px;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

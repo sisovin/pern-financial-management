@@ -1,0 +1,69 @@
+/* Use Tailwind directives instead of imports */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Root variables for theme - light mode defaults */
+:root {
+  /* Light theme variables */
+  --background: #ffffff;
+  --card-background: #f8f9fa;
+  --text-color: #212529;
+  --text-secondary: #6c757d;
+  --primary-color: #6366f1;
+  --hover-color: #4f46e5;
+  --border-color: #dee2e6;
+}
+
+.dark {
+  /* Dark theme variables */
+  --background: #1a1a1a;
+  --card-background: #2d2d2d;
+  --text-color: #f0f0f0;
+  --text-secondary: #adb5bd;
+  --primary-color: #6366f1;
+  --hover-color: #818cf8;
+  --border-color: #4b5563;
+}
+
+/* Apply base styles */
+html, body {
+  background-color: var(--background);
+  color: var(--text-color);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Make sure card backgrounds use the variable */
+.bg-card {
+  background-color: var(--card-background);
+}
+
+/* Ensure text colors use the variables */
+.text-foreground {
+  color: var(--text-color);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+/* Additional utility classes for other variables */
+.border-border {
+  border-color: var(--border-color);
+}
+
+.bg-primary {
+  background-color: var(--primary-color);
+}
+
+.text-primary {
+  color: var(--primary-color);
+}
+
+.hover\:bg-hover:hover {
+  background-color: var(--hover-color);
+}
+
+.hover\:text-hover:hover {
+  color: var(--hover-color);
+}

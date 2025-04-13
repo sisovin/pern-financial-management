@@ -1,0 +1,34 @@
+.dark-mode-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  color: var(--text-color);
+  padding: 8px;
+}
+
+.dark-mode-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode-toggle.dark {
+  color: var(--text-color);
+}
+
+.dark-mode-toggle.dark:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* For fixed position in layout */
+.dark-mode-toggle-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 50;
+}
